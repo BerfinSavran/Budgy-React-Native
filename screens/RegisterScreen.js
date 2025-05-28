@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { TextInput, Button, Text } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native'; // useNavigation hook'u
+import userService from '../services/userService';
 
 const RegisterScreen = () => {
   const [name, setName] = useState('');
@@ -9,14 +10,26 @@ const RegisterScreen = () => {
   const [password, setPassword] = useState('');
   const navigation = useNavigation(); // navigation objesini al
 
-  const handleRegister = () => {
-    // Burada kayıt işlemini yapabilirsiniz, örneğin API'ye veri gönderebilirsiniz.
-    console.log('Kayıt Ol');
+  const handleRegister = async () => {
+    console.log("handleRegister çağrıldı");
+    try {
+      const user = {
+        FullName: name,
+        Email: email,
+        Password: password,
+        Gender: 0,
+        TelNo: "",
+      };
+      console.log("Kullanıcı objesi hazır:", user);
 
-    // Kayıt işlemi başarılı olduktan sonra Login ekranına yönlendirme
-    navigation.navigate('Login');
+
+      const result = await userService.register(user);
+      console.log("Kayıt başarılı:", result);
+      navigation.navigate("Login");
+    } catch (error) {
+      console.error("Kayıt hatası:", error.message);
+    }
   };
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Budgy</Text>

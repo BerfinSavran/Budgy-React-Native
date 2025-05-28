@@ -1,67 +1,116 @@
-import React from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Surface } from 'react-native-paper';
 import AppHeader from '../components/AppHeader';
 import BottomNavigation from '../components/BottomNavigation';
+import incomeExpenseService from '../services/incomeExpenseService';
+import goalService from '../services/goalService';
+import { AuthContext } from '../services/authContext';
 
 const HomeScreen = () => {
+  const { userData, loading } = useContext(AuthContext);
+
+  const [balance, setBalance] = useState(0);
+  const [income, setIncome] = useState(0);
+  const [expense, setExpense] = useState(0);
+  const [plannedBudget, setPlannedBudget] = useState(0);
+  const [remainingBudget, setRemainingBudget] = useState(0);
+  const [spentPercentage, setSpentPercentage] = useState(0);
+
+  useEffect(() => {
+    async function fetchData() {
+      if (!userData) return;  // userData yoksa API çağrısı yapma
+
+      try {
+        const userId = userData.ID;  // Gerçek kullanıcı ID'si buradan geliyor
+
+        const incomeExpenseResponse = await incomeExpenseService.getMonthlyTotals(userId);
+        const goalResponse = await goalService.getTotalByDate(userId, new Date().toISOString());
+
+        const currentMonthData = incomeExpenseResponse.data.length > 0 ? incomeExpenseResponse.data[0] : null;
+
+        if (currentMonthData) {
+          setIncome(currentMonthData.TotalIncome);
+          setExpense(currentMonthData.TotalExpense);
+          setBalance(currentMonthData.TotalIncome - currentMonthData.TotalExpense);
+          setPlannedBudget(goalResponse.data.totalAmount || 0);
+
+          const remaining = (goalResponse.data.totalAmount || 0) - currentMonthData.TotalExpense;
+          setRemainingBudget(remaining > 0 ? remaining : 0);
+
+          const spentPerc = (currentMonthData.TotalExpense / (goalResponse.data.totalAmount || 1)) * 100;
+          setSpentPercentage(spentPerc.toFixed(1));
+        }
+      } catch (error) {
+        console.error('Veriler alınamadı:', error);
+      }
+    }
+
+    if (!loading) {
+      fetchData();
+    }
+  }, [userData, loading]);
+
+  if (loading) {
+    return <Text>Yükleniyor...</Text>;
+  }
+
+  if (!userData) {
+    return <Text>Lütfen giriş yapınız.</Text>;
+  }
+
   return (
     <View style={styles.container}>
 
       <AppHeader />
 
-
       <View style={styles.content}>
 
         <Surface style={styles.balanceCard}>
           <Text style={styles.balanceTitle}>Mevcut Bakiye</Text>
-          <Text style={styles.balanceAmount}>1620</Text>
-          
+          <Text style={styles.balanceAmount}>{balance}</Text>
+
           <View style={styles.financeSummary}>
             <View style={styles.financeBox}>
               <Text style={styles.financeLabel}>Gelir</Text>
-              <Text style={styles.financeValue}>6120</Text>
+              <Text style={styles.financeValue}>{income}</Text>
             </View>
             <View style={styles.financeBox}>
               <Text style={styles.financeLabel}>Gider</Text>
-              <Text style={styles.financeValue}>4500</Text>
+              <Text style={styles.financeValue}>{expense}</Text>
             </View>
           </View>
         </Surface>
-
 
         <View style={styles.budgetCards}>
           <Surface style={styles.budgetCard}>
             <Text style={styles.budgetLabel}>Planlanan Bütçe</Text>
-            <Text style={styles.budgetValue}>9000</Text>
+            <Text style={styles.budgetValue}>{plannedBudget}</Text>
           </Surface>
           <Surface style={styles.budgetCard}>
             <Text style={styles.budgetLabel}>Kalan Bütçe</Text>
-            <Text style={styles.budgetValue}>4500</Text>
+            <Text style={styles.budgetValue}>{remainingBudget}</Text>
           </Surface>
         </View>
-
 
         <Surface style={styles.progressCard}>
           <Text style={styles.progressLabel}>Bütçe Harcama Durumu</Text>
           <View style={styles.progressBarContainer}>
-            <View style={styles.progressBar} />
+            <View style={[styles.progressBar, { width: `${spentPercentage}%` }]} />
           </View>
-          <Text style={styles.progressValue}>%50.0 Harcandı</Text>
+          <Text style={styles.progressValue}>%{spentPercentage} Harcandı</Text>
         </Surface>
-
 
         <Surface style={styles.chartCard}>
           <View style={styles.chartContainer}>
             <View style={styles.barContainer}>
-              <View style={styles.barIncome} />
-              <View style={styles.barExpense} />
+              <View style={[styles.barIncome, { height: (income / 100) * 2 }]} />
+              <View style={[styles.barExpense, { height: (expense / 100) * 2 }]} />
             </View>
-            <Text style={styles.chartLabel}>Jan</Text>
+            <Text style={styles.chartLabel}>Bu Ay</Text>
           </View>
         </Surface>
       </View>
-
 
       <BottomNavigation activeRoute="Home" />
     </View>
@@ -69,6 +118,7 @@ const HomeScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  // ...senin verdiğin stil aynı kalabilir
   container: {
     flex: 1,
     backgroundColor: '#F8EFFF',
@@ -161,7 +211,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   progressBar: {
-    width: '50%',
     height: '100%',
     backgroundColor: '#7D2998',
   },
@@ -188,13 +237,11 @@ const styles = StyleSheet.create({
   },
   barIncome: {
     width: 40,
-    height: 120,
     backgroundColor: '#7D2998',
     marginRight: 10,
   },
   barExpense: {
     width: 40,
-    height: 90,
     backgroundColor: '#4A1A59',
   },
   chartLabel: {

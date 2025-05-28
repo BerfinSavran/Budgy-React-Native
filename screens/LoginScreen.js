@@ -1,20 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useContext  } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { TextInput, Button, Text } from 'react-native-paper';
 import { TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import userService from '../services/userService';
+import { AuthContext } from '../services/authContext';
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const navigation = useNavigation();
+  const navigation = useNavigation();  
+  const { login } = useContext(AuthContext); 
 
-  const handleLogin = () => {
-    // Burada giriş işlemini yapabilirsiniz (örneğin, API ile doğrulama)
-    console.log('Giriş Yap');
-    
-    // Giriş işlemi başarılı olursa HomeScreen'e yönlendir
-    navigation.navigate('Home');
+  const handleLogin = async () => {
+    console.log('Login işlemi başladı:', email);
+
+    try {
+      // userService.login API çağrısı
+      const { token, user } = await userService.login(email, password);
+      console.log("Giriş başarılı, token ve user alındı:", token, user);
+
+      // AuthContext içindeki login fonksiyonunu çağır, token ve user verisini saklar
+      await login(token, user);
+
+      // Ana ekrana yönlendir
+      navigation.navigate('Home');
+    } catch (error) {
+      console.error("Giriş hatası:", error.message);
+    }
   };
 
   return (

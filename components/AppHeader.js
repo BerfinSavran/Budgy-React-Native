@@ -1,14 +1,17 @@
 
-import React from 'react';
+import React, {useContext} from 'react';
 import PropTypes from 'prop-types';
 import { StyleSheet, Text } from 'react-native';
 import { Appbar } from 'react-native-paper';
+import { AuthContext } from '../services/authContext';
 
-const AppHeader = ({ title, username }) => {
+const AppHeader = ({ title }) => {
+  const { userData } = useContext(AuthContext);
+
   return (
-    <Appbar.Header style={styles.header}>
+    <Appbar.Header style={styles.header} statusBarHeight={0}>
       <Appbar.Content title={title || "Budgy"} titleStyle={styles.headerTitle} />
-      <Text style={styles.headerUser}>{username || "berfin"}</Text>
+      <Text style={styles.headerUser}>{userData?.FullName}</Text>
     </Appbar.Header>
   );
 };
